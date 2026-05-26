@@ -2,10 +2,8 @@ module github.com/YasarKaan/netshield-ebpf
 
 go 1.25.0
 
-replace github.com/YasarKaan/go-kit => ../go-kit
-
 require (
-	github.com/YasarKaan/go-kit v0.0.0-00010101000000-000000000000
+	github.com/YasarKaan/go-kit v0.1.0
 	github.com/cilium/ebpf v0.21.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/oschwald/geoip2-golang v1.13.0

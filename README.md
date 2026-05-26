@@ -1,10 +1,12 @@
 # NetShield-eBPF
 
-NetShield-eBPF is a host-level network defense agent that uses XDP/eBPF to detect and block abusive traffic, expose Prometheus metrics, and stream live events to a web dashboard.
+NetShield-eBPF is a fun project focused on exploring host-level network defense with XDP/eBPF. It aims to detect and block abusive traffic, expose Prometheus metrics, and stream live events to a web dashboard.
 
 ## Status
 
-> **Pre-production — looking for testers**
+> **Pre-production prototype — actively being developed**
+
+This repository is primarily an experimental side project and learning vehicle, not a production-ready security product. The core pieces are working and improving, but the system is still evolving and should be treated as a pre-production prototype.
 
 The Go backend, REST API, WebSocket layer, React dashboard, Helm chart, and CI pipeline are complete and unit-tested (≈ 50% coverage, all packages passing with `-race`).
 
