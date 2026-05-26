@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+  - name: 'NetShield'
+    orgId: 1
+    folder: 'NetShield'
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 5
+    options:
+      path: /var/lib/grafana/dashboards

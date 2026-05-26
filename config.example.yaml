@@ -1,0 +1,55 @@
+# NetShield-eBPF Configuration Example
+
+# Target network interface to attach the XDP program to
+interface: eth0
+
+# XDP program load options
+xdp:
+  # Mode can be 'native' (driver-level, high performance), 'generic' (standard kernel network path),
+  # or 'offload' (hardware-level on smartNICs).
+  mode: generic
+
+# Core detection and analysis configurations
+analyzer:
+  # Userspace rate limit detection (token bucket/sliding window)
+  rate_limit:
+    pps: 1000
+    window_seconds: 5
+
+  # Userspace port scan detection
+  port_scan:
+    distinct_ports: 20
+    window: 10s
+
+  # Coarse kernel-side rate gate: rate limit per-IP (in PPS) computed inside the XDP program itself.
+  # Packets exceeding this rate bypass standard sampling and are always streamed to userspace for analysis.
+  coarse_pps_limit: 5000
+
+  # Ring buffer packet sampling: 1 = stream all packet details to userspace, 10 = stream 1 in 10 packets, etc.
+  sample_every_n: 1
+
+# Notification channels
+notifier:
+  # Debounce window: wait for this duration to cluster multiple rapid block alerts into a single notification summary.
+  debounce_window: 10s
+  # Webhooks configurations (uncomment to configure slack/discord notifications)
+  # webhooks:
+  #   - type: slack
+  #     url: https://example.invalid/slack-webhook
+  #   - type: discord
+  #     url: https://example.invalid/discord-webhook
+
+# REST & WebSocket API configurations
+api:
+  listen_addr: :8080
+  auth:
+    enabled: true
+    # Bearer token must match this secret for command execution via API & CLI
+    token: your-secret-token-here
+
+# Logging configuration
+log:
+  # Level: 'debug', 'info', 'warn', 'error'
+  level: info
+  # Format: 'json', 'console'
+  format: console

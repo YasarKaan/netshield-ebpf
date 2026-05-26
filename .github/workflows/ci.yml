@@ -1,0 +1,86 @@
+name: NetShield-eBPF CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Install Linux Kernel Development Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm libelf-dev libbpf-dev libpcap-dev gcc make
+
+      # Since go generate runs bpf2go compiling kernel C code, we execute it to verify generation succeeds
+      - name: Run Go Generate
+        run: go generate ./...
+
+      - name: Run Go Tests
+        run: go test -v -race ./...
+
+      # BPF integration tests load the compiled XDP program into the kernel,
+      # running the BPF verifier and testing actual XDP_PASS / XDP_DROP behaviour
+      # against synthetic packets. Requires root and a Linux kernel ≥ 5.10.
+      - name: Run BPF Integration Tests
+        run: sudo -E env "PATH=$PATH" go test -v -count=1 -run TestXDP ./internal/loader/...
+
+      - name: Build Go Agent Binaries
+        run: |
+          go build -o netshield ./cmd/netshield
+          go build -o netshield-cli ./cmd/netshield-cli
+
+  frontend-build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Run ESLint checks
+        working-directory: web
+        run: npm run lint
+
+      - name: Build React Production Package
+        working-directory: web
+        run: npm run build
+
+      - name: Audit Frontend Dependencies
+        working-directory: web
+        run: npm audit --omit=dev --audit-level=high
+
+  security-scan:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy Filesystem Scan
+        uses: aquasecurity/trivy-action@0.31.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          exit-code: '1'

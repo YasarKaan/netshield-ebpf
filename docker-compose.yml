@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: netshield-agent
+    # Run in mock mode by default for cross-platform docker testing (e.g. Docker Desktop on macOS/Windows)
+    # To run in actual production eBPF mode on a Linux system, set mock to false,
+    # and uncomment the network_mode, privileged, and Linux system volumes below.
+    command: ["--config", "/app/config.yaml", "--mock=true"]
+    ports:
+      - "8080:8080" # REST & WebSockets API
+      - "2112:2112" # Prometheus scraping endpoint
+    volumes:
+      - ./config.example.yaml:/app/config.yaml:ro
+    restart: always
+    # For actual eBPF capabilities on Linux, uncomment these lines:
+    # network_mode: "host"
+    # privileged: true
+    # volumes:
+    #   - ./config.example.yaml:/app/config.yaml:ro
+    #   - /sys/fs/bpf:/sys/fs/bpf
+    #   - /lib/modules:/lib/modules:ro
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: netshield-web
+    ports:
+      - "3000:80" # Web UI accessible at http://localhost:3000
+    depends_on:
+      - agent
+    restart: always
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: netshield-prometheus
+    restart: always
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090" # Prometheus UI at http://localhost:9090
+    depends_on:
+      - agent
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: netshield-grafana
+    restart: always
+    ports:
+      - "3001:3000" # Grafana UI at http://localhost:3001
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=changeme
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/netshield-dashboard.json:/var/lib/grafana/dashboards/netshield-dashboard.json:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  prometheus-data:
+  grafana-data:
